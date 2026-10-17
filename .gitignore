@@ -41,6 +41,9 @@ src/main/resources/application-local.yml
 src/main/resources/application-secrets.yml
 src/main/resources/application-override.yml
 
+# Configurações locais de desenvolvimento
+src/main/resources/application-dev.yml
+
 # Logs
 *.log
 
