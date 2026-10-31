@@ -2,7 +2,6 @@ package br.com.maozinha.job.dto;
 
 import br.com.maozinha.job.JobStatus;
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -36,9 +35,6 @@ public record UpdateJobRequest(
         BigDecimal value,
 
         @NotNull(message = "A data do serviço é obrigatória.")
-        @FutureOrPresent(
-                message = "A data do serviço não pode estar no passado."
-        )
         LocalDate serviceDate,
 
         @NotBlank(message = "A cidade é obrigatória.")

@@ -1,12 +1,14 @@
 package br.com.maozinha.user;
 
 import br.com.maozinha.common.exception.NotFoundException;
+import br.com.maozinha.user.dto.PublicUserProfileResponse;
 import br.com.maozinha.user.dto.UpdateProfileRequest;
 import br.com.maozinha.user.dto.UserProfileResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -41,6 +43,16 @@ public class UserController {
                 );
 
         return ResponseEntity.ok(response);
+    }
+
+    // Perfil público: sem WhatsApp nem e-mail.
+    @GetMapping("/{id}")
+    public ResponseEntity<PublicUserProfileResponse> getPublicProfile(
+            @PathVariable("id") Long userId
+    ) {
+        return ResponseEntity.ok(
+                userService.getPublicProfile(userId)
+        );
     }
 
     @PutMapping("/me")

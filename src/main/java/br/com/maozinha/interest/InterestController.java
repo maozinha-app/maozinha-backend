@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
 import java.net.URI;
 import java.util.List;
 import java.util.Objects;
@@ -137,14 +138,21 @@ public class InterestController {
 
     @GetMapping("/api/services/{id}/interests")
     public ResponseEntity<List<InterestResponse>> findByJob(
+            Authentication authentication,
             @PathVariable("id")
             @Positive
             Long jobId
     ) {
 
+        String authenticatedEmail =
+                getAuthenticatedEmail(
+                        authentication
+                );
+
         return ResponseEntity.ok(
                 interestService.findByJob(
-                        jobId
+                        jobId,
+                        authenticatedEmail
                 )
         );
     }
@@ -162,6 +170,23 @@ public class InterestController {
         return ResponseEntity.ok(
                 interestService.findMyInterests(
                         authenticatedEmail
+                )
+        );
+    }
+
+    @GetMapping("/api/services/{id}/interests/count")
+    public ResponseEntity<Map<String, Long>> countInterests(
+            @PathVariable("id")
+            @Positive
+            Long jobId
+    ) {
+
+        return ResponseEntity.ok(
+                Map.of(
+                        "total",
+                        interestService.countActiveInterests(
+                                jobId
+                        )
                 )
         );
     }

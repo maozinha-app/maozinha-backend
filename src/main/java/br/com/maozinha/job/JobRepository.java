@@ -16,4 +16,10 @@ public interface JobRepository extends JpaRepository<Job, Long> {
             User requester,
             Pageable pageable
     );
+
+    Page<Job> findByStatusAndHiddenByModerationFalseAndRequester_Id(
+            JobStatus status,
+            Long requesterId,
+            Pageable pageable
+    );
 }

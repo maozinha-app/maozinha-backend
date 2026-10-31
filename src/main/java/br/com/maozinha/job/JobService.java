@@ -179,6 +179,40 @@ public class JobService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public Page<JobResponse> findMyJobs(
+            String authenticatedEmail,
+            Pageable pageable
+    ) {
+
+        User requester =
+                findActiveUserByEmail(
+                        authenticatedEmail
+                );
+
+        return jobRepository
+                .findByRequester(
+                        requester,
+                        pageable
+                )
+                .map(JobResponse::from);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<JobResponse> findOpenJobsByRequester(
+            Long requesterId,
+            Pageable pageable
+    ) {
+
+        return jobRepository
+                .findByStatusAndHiddenByModerationFalseAndRequester_Id(
+                        JobStatus.ABERTO,
+                        requesterId,
+                        pageable
+                )
+                .map(JobResponse::from);
+    }
+
     private Job findJobById(
             Long jobId
     ) {

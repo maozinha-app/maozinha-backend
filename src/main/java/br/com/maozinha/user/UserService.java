@@ -1,6 +1,7 @@
 package br.com.maozinha.user;
 
 import br.com.maozinha.common.exception.NotFoundException;
+import br.com.maozinha.user.dto.PublicUserProfileResponse;
 import br.com.maozinha.user.dto.UpdateProfileRequest;
 import br.com.maozinha.user.dto.UserProfileResponse;
 import org.springframework.stereotype.Service;
@@ -52,6 +53,20 @@ public class UserService {
         User savedUser = userRepository.save(user);
 
         return UserProfileResponse.from(savedUser);
+    }
+
+    @Transactional(readOnly = true)
+    public PublicUserProfileResponse getPublicProfile(
+            Long userId
+    ) {
+        User user = userRepository
+                .findById(userId)
+                .filter(User::isActive)
+                .orElseThrow(() -> new NotFoundException(
+                        "Usuário não encontrado."
+                ));
+
+        return PublicUserProfileResponse.from(user);
     }
 
     private User findActiveUserByEmail(String authenticatedEmail) {

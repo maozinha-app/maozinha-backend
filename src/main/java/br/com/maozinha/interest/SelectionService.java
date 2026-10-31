@@ -1,6 +1,7 @@
 package br.com.maozinha.interest;
 
 import br.com.maozinha.common.config.MaozinhaProperties;
+import br.com.maozinha.common.exception.BusinessRuleException;
 import br.com.maozinha.common.exception.ConflictException;
 import br.com.maozinha.common.exception.NotFoundException;
 import br.com.maozinha.job.Job;
@@ -73,6 +74,21 @@ public class SelectionService {
                 job,
                 requester
         );
+
+        if (job.getStatus() != JobStatus.ABERTO
+                && job.getStatus() != JobStatus.SELECIONADO) {
+
+            throw new BusinessRuleException(
+                    "Este serviço não aceita mais seleções."
+            );
+        }
+
+        if (interest.getStatus() != InterestStatus.PENDENTE) {
+
+            throw new BusinessRuleException(
+                    "Só é possível selecionar interessados pendentes."
+            );
+        }
 
         long selectedCount =
                 interestRepository

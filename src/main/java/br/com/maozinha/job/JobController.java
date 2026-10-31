@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -86,7 +87,11 @@ public class JobController {
 
             @RequestParam(
                     defaultValue = "10"
-            ) int size
+            ) int size,
+
+            @RequestParam(
+                    required = false
+            ) Long requesterId
 
     ) {
 
@@ -97,13 +102,55 @@ public class JobController {
                 );
 
         Page<JobResponse> jobs =
-                jobService.findOpenJobs(
+                requesterId == null
+                        ? jobService.findOpenJobs(pageable)
+                        : jobService.findOpenJobsByRequester(
+                        requesterId,
                         pageable
                 );
 
         return ResponseEntity.ok(
                 PageResponse.from(
                         jobs
+                )
+        );
+    }
+
+
+    @GetMapping("/api/users/me/services")
+    public ResponseEntity<PageResponse<JobResponse>> findMyServices(
+            Authentication authentication,
+
+            @RequestParam(
+                    defaultValue = "0"
+            ) int page,
+
+            @RequestParam(
+                    defaultValue = "100"
+            ) int size
+    ) {
+
+        Pageable pageable =
+                PageRequest.of(
+                        page,
+                        size,
+                        Sort.by(
+                                Sort.Direction.DESC,
+                                "createdAt"
+                        )
+                );
+
+        String authenticatedEmail =
+                getAuthenticatedEmail(
+                        authentication
+                );
+
+        return ResponseEntity.ok(
+                PageResponse.from(
+                        jobService.findMyJobs(
+                                authenticatedEmail,
+                                pageable
+                        )
                 )
         );
     }

@@ -1,6 +1,8 @@
 package br.com.maozinha.interest;
 
+import br.com.maozinha.common.exception.BusinessRuleException;
 import br.com.maozinha.common.exception.ConflictException;
+import br.com.maozinha.common.exception.ForbiddenException;
 import br.com.maozinha.common.exception.NotFoundException;
 import br.com.maozinha.interest.dto.CreateInterestResponse;
 import br.com.maozinha.interest.dto.InterestResponse;
@@ -77,21 +79,36 @@ public class InterestService {
             );
         }
 
-        if (interestRepository.existsByUserAndJob(
-                user,
-                job
-        )) {
+        Interest existente =
+                interestRepository
+                        .findByUserAndJob(
+                                user,
+                                job
+                        )
+                        .orElse(null);
+
+        Interest interest;
+
+        if (existente == null) {
+
+            interest =
+                    Interest.create(
+                            user,
+                            job
+                    );
+
+        } else if (existente.getStatus() == InterestStatus.RETIRADO) {
+
+            // Voltou atrás: reaproveita o registro (UNIQUE usuário+serviço).
+            existente.reopen();
+            interest = existente;
+
+        } else {
 
             throw new ConflictException(
                     "O usuário já demonstrou interesse neste serviço."
             );
         }
-
-        Interest interest =
-                Interest.create(
-                        user,
-                        job
-                );
 
         Interest savedInterest =
                 interestRepository.saveAndFlush(
@@ -123,17 +140,65 @@ public class InterestService {
                 .getId()
                 .equals(user.getId())) {
 
-            throw new ConflictException(
+            throw new ForbiddenException(
                     "O usuário não possui permissão para alterar este interesse."
             );
         }
+
+        // Já retirado: nada a fazer (idempotente).
+        if (interest.getStatus() == InterestStatus.RETIRADO) {
+            return;
+        }
+
+        if (interest.getStatus() == InterestStatus.NAO_SELECIONADO) {
+
+            throw new BusinessRuleException(
+                    "Este interesse já foi recusado e não pode ser retirado."
+            );
+        }
+
+        Job job =
+                interest.getJob();
+
+        if (interest.getStatus() == InterestStatus.SELECIONADO) {
+
+            // Depois que o serviço começa, só o dono pode cancelar.
+            if (job.getStatus() != JobStatus.SELECIONADO) {
+
+                throw new BusinessRuleException(
+                        "Você já foi selecionado e o serviço já começou. Fale com quem publicou para cancelar."
+                );
+            }
+        }
+
+        boolean eraSelecionado =
+                interest.getStatus() == InterestStatus.SELECIONADO;
 
         interest.withdraw();
 
         interestRepository.save(
                 interest
         );
+
+        // Se era o único selecionado, o serviço volta a receber interessados.
+        if (eraSelecionado
+                && interestRepository
+                .findByJobAndStatus(
+                        job,
+                        InterestStatus.SELECIONADO
+                )
+                .isEmpty()) {
+
+            job.changeStatus(
+                    JobStatus.ABERTO
+            );
+
+            jobRepository.save(
+                    job
+            );
+        }
     }
+
 
     @Transactional(readOnly = true)
     public List<InterestResponse> findMyInterests(
@@ -148,12 +213,47 @@ public class InterestService {
         return interestRepository
                 .findByUser(user)
                 .stream()
-                .map(InterestResponse::from)
+                .map(InterestResponse::forInterested)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public List<InterestResponse> findByJob(
+            Long jobId,
+            String authenticatedEmail
+    ) {
+
+        Job job =
+                findJobById(
+                        jobId
+                );
+
+        User requester =
+                findActiveUserByEmail(
+                        authenticatedEmail
+                );
+
+        // Só quem publicou o serviço vê a lista de interessados.
+        if (!job.getRequester()
+                .getId()
+                .equals(
+                        requester.getId()
+                )) {
+
+            throw new ForbiddenException(
+                    "O usuário não possui permissão para ver os interessados deste serviço."
+            );
+        }
+
+        return interestRepository
+                .findByJob(job)
+                .stream()
+                .map(InterestResponse::forRequester)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public long countActiveInterests(
             Long jobId
     ) {
 
@@ -165,8 +265,11 @@ public class InterestService {
         return interestRepository
                 .findByJob(job)
                 .stream()
-                .map(InterestResponse::from)
-                .toList();
+                .filter(interest ->
+                        interest.getStatus() == InterestStatus.PENDENTE
+                                || interest.getStatus() == InterestStatus.SELECIONADO
+                )
+                .count();
     }
 
     private User findActiveUserByEmail(

@@ -118,6 +118,12 @@ public class Interest {
         status =
                 InterestStatus.RETIRADO;
     }
+    public void reopen() {
+
+        status =
+                InterestStatus.PENDENTE;
+    }
+
 
     @PrePersist
     private void prePersist() {
