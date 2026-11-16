@@ -1,0 +1,20 @@
+# Somente pom.xml e src/ são usados no build.
+target/
+.git/
+.idea/
+.vscode/
+.mvn/
+mvnw
+mvnw.cmd
+*.iml
+*.log
+.DS_Store
+db/
+
+# Segredos e configurações locais NUNCA devem entrar na imagem
+.env
+.env.*
+src/main/resources/application-dev.yml
+src/main/resources/application-local.yml
+src/main/resources/application-secrets.yml
+src/main/resources/application-override.yml
